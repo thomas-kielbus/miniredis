@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
@@ -228,6 +229,38 @@ func TestTLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	res, err := c.Do("PING")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if have, want := res, proto.Inline("PONG"); have != want {
+		t.Errorf("have: %s, want: %s", have, want)
+	}
+}
+
+func TestOnListener(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+
+	conn, err := net.Dial(lis.Addr().Network(), lis.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	s := NewServerOnListener(lis)
+	defer s.Close()
+
+	s.Register("PING", func(c *Peer, cmd string, args []string) {
+		c.WriteInline("PONG")
+	})
+
+	c := proto.DialConnection(conn)
+	defer c.Close()
+
 	res, err := c.Do("PING")
 	if err != nil {
 		t.Fatal(err)

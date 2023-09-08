@@ -3,6 +3,7 @@ package miniredis
 import (
 	"bufio"
 	"bytes"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -81,6 +82,29 @@ func TestAddr(t *testing.T) {
 
 	c, err := proto.Dial("127.0.0.1:7887")
 	ok(t, err)
+	defer c.Close()
+	mustDo(t, c, "PING", proto.Inline("PONG"))
+}
+
+func TestOnListener(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+
+	conn, err := net.Dial(lis.Addr().Network(), lis.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	m := NewMiniRedis()
+	err = m.StartOnListener(lis)
+	ok(t, err)
+	defer m.Close()
+
+	c := proto.DialConnection(conn)
 	defer c.Close()
 	mustDo(t, c, "PING", proto.Inline("PONG"))
 }

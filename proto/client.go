@@ -17,10 +17,7 @@ func Dial(addr string) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{
-		c: c,
-		r: bufio.NewReader(c),
-	}, nil
+	return DialConnection(c), nil
 }
 
 func DialTLS(addr string, cfg *tls.Config) (*Client, error) {
@@ -29,10 +26,14 @@ func DialTLS(addr string, cfg *tls.Config) (*Client, error) {
 		return nil, err
 	}
 
+	return DialConnection(c), nil
+}
+
+func DialConnection(c net.Conn) *Client {
 	return &Client{
 		c: c,
 		r: bufio.NewReader(c),
-	}, nil
+	}
 }
 
 func (c *Client) Close() error {

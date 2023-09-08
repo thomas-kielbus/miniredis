@@ -48,7 +48,7 @@ func NewServer(addr string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newServer(l), nil
+	return NewServerOnListener(l), nil
 }
 
 func NewServerTLS(addr string, cfg *tls.Config) (*Server, error) {
@@ -56,10 +56,10 @@ func NewServerTLS(addr string, cfg *tls.Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newServer(l), nil
+	return NewServerOnListener(l), nil
 }
 
-func newServer(l net.Listener) *Server {
+func NewServerOnListener(l net.Listener) *Server {
 	s := Server{
 		cmds:  map[string]Cmd{},
 		peers: map[net.Conn]struct{}{},
@@ -124,7 +124,12 @@ func (s *Server) Addr() *net.TCPAddr {
 	if s.l == nil {
 		return nil
 	}
-	return s.l.Addr().(*net.TCPAddr)
+	v, ok := s.l.Addr().(*net.TCPAddr)
+	if ok {
+		return v
+	} else {
+		return nil
+	}
 }
 
 // Close a server started with NewServer. It will wait until all clients are

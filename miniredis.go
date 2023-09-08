@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"math/rand"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -123,10 +124,16 @@ func Run() (*Miniredis, error) {
 	return m, m.Start()
 }
 
-// Run creates and Start()s a Miniredis, TLS version.
+// RunTLS creates and Start()s a Miniredis, TLS version.
 func RunTLS(cfg *tls.Config) (*Miniredis, error) {
 	m := NewMiniRedis()
 	return m, m.StartTLS(cfg)
+}
+
+// RunOnListener creates and Start()s a Miniredis on the given listener.
+func RunOnListener(lis net.Listener) (*Miniredis, error) {
+	m := NewMiniRedis()
+	return m, m.StartOnListener(lis)
 }
 
 // Tester is a minimal version of a testing.T
@@ -175,11 +182,22 @@ func (m *Miniredis) StartAddr(addr string) error {
 	return m.start(s)
 }
 
+// StartOnListener starts a server on the given listener.
+func (m *Miniredis) StartOnListener(lis net.Listener) error {
+	s := server.NewServerOnListener(lis)
+	return m.start(s)
+}
+
 func (m *Miniredis) start(s *server.Server) error {
 	m.Lock()
 	defer m.Unlock()
 	m.srv = s
-	m.port = s.Addr().Port
+	addr := s.Addr()
+	if addr != nil {
+		m.port = addr.Port
+	} else {
+		m.port = 0
+	}
 
 	commandsConnection(m)
 	commandsGeneric(m)
