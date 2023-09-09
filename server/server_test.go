@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -267,5 +268,22 @@ func TestOnListener(t *testing.T) {
 	}
 	if have, want := res, proto.Inline("PONG"); have != want {
 		t.Errorf("have: %s, want: %s", have, want)
+	}
+}
+
+type mockListener struct{}
+
+func (*mockListener) Accept() (net.Conn, error) { return nil, errors.New("test error") }
+func (*mockListener) Close() error              { return nil }
+func (*mockListener) Addr() net.Addr            { return nil }
+
+var _ net.Listener = (*mockListener)(nil)
+
+func TestAddrWithNonStandardListener(t *testing.T) {
+	s := NewServerOnListener(&mockListener{})
+	defer s.Close()
+
+	if have := s.Addr(); have != nil {
+		t.Errorf("have: %s, want: nil", have)
 	}
 }
